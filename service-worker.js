@@ -2,7 +2,7 @@
    El scope se limita a la carpeta donde se aloje este archivo,
    por lo que no interfiere con el resto del portal en el que esté instalado. */
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const CACHE_NAME = `funcion-gamma-v${VERSION}`;
 
 /* Solo recursos locales de la app; los CDN se dejan a la red */
