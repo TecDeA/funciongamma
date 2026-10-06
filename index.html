@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora y Visualizador de la Función Gamma</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX CSS & JS for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Chart.js for Graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f5ff',
+                            100: '#e0ebff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .katex-display { margin: 0.5em 0; }
+        /* Smooth custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-full font-sans antialiased selection:bg-brand-500 selection:text-white pb-12">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-xl">
+                    Γ
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight">Función Gamma de Euler</h1>
+                    <p class="text-xs text-slate-400">Calculadora Analítica y Visualizador Interactivo</p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center space-x-4 text-xs text-slate-400">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 font-mono text-slate-300">
+                    $\Gamma(z) = \int_0^\infty t^{z-1}e^{-t}dt$
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+        
+        <!-- Main Grid: Controls & Graph -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Left Column: Input & Calculator (5 cols) -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Input Card -->
+                <div class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 shadow-xl backdrop-blur-sm space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            Evaluador de Parámetro
+                        </h2>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">x ∈ ℝ</span>
+                    </div>
+
+                    <!-- Input Controls -->
+                    <div class="space-y-4">
+                        <label for="xInput" class="block text-xs font-medium text-slate-400">
+                            Ingresa o desliza el valor de $x$:
+                        </label>
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="relative flex-1">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">
+                                    x =
+                                </span>
+                                <input type="number" id="xInput" step="any" value="2.5" 
+                                    class="w-full bg-slate-900 border border-slate-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl pl-10 pr-4 py-2.5 text-white font-mono font-medium text-lg outline-none transition-all">
+                            </div>
+                        </div>
+
+                        <!-- Slider -->
+                        <div class="space-y-1 pt-2">
+                            <input type="range" id="xSlider" min="-4.5" max="5.0" step="0.05" value="2.5" 
+                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                                <span>-4.5</span>
+                                <span>-2.0</span>
+                                <span>0.0</span>
+                                <span>2.5</span>
+                                <span>5.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Presets -->
+                    <div class="space-y-2">
+                        <span class="text-xs font-medium text-slate-400">Valores notables de interés:</span>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button onclick="setX(0.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                1/2 <span class="text-[10px] text-brand-400 block">(√π)</span>
+                            </button>
+                            <button onclick="setX(1)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                1 <span class="text-[10px] text-brand-400 block">(0!)</span>
+                            </button>
+                            <button onclick="setX(2.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                5/2 <span class="text-[10px] text-brand-400 block">(¾√π)</span>
+                            </button>
+                            <button onclick="setX(5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                5 <span class="text-[10px] text-brand-400 block">(4! = 24)</span>
+                            </button>
+                            <button onclick="setX(-0.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                -1/2 <span class="text-[10px] text-brand-400 block">(-2√π)</span>
+                            </button>
+                            <button onclick="setX(-1.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                -3/2 <span class="text-[10px] text-brand-400 block">(⁴/₃√π)</span>
+                            </button>
+                            <button onclick="setX(0)" class="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 rounded-lg text-xs font-mono text-rose-300 transition-all text-center">
+                                0 <span class="text-[10px] text-rose-400 block">(Polo)</span>
+                            </button>
+                            <button onclick="setX(10)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                                10 <span class="text-[10px] text-brand-400 block">(9!)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Display Card -->
+                <div class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 shadow-xl space-y-5">
+                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resultado Analítico</span>
+                        <span id="exactBadge" class="hidden text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Valor Exacto
+                        </span>
+                    </div>
+
+                    <!-- Main Gamma Value -->
+                    <div class="space-y-1">
+                        <div class="text-xs text-slate-400 font-medium">Valor de $\Gamma(x)$:</div>
+                        <div id="gammaValue" class="text-2xl sm:text-3xl font-mono font-bold text-brand-400 break-all">
+                            1.329340388
+                        </div>
+                    </div>
+
+                    <!-- Exact Symbol Representation if applicable -->
+                    <div id="exactContainer" class="hidden bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 space-y-1">
+                        <span class="text-[11px] text-slate-400 block">Forma simbólica exacta:</span>
+                        <div id="exactMath" class="text-lg text-emerald-300 font-mono"></div>
+                    </div>
+
+                    <!-- Secondary Metrics -->
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/40">
+                            <span class="text-[11px] text-slate-400 block mb-0.5">$\ln|\Gamma(x)|$</span>
+                            <span id="lnGammaValue" class="text-sm font-mono font-semibold text-slate-200">0.284682</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/40">
+                            <span class="text-[11px] text-slate-400 block mb-0.5">Relación Factorial</span>
+                            <span id="factorialRel" class="text-sm font-mono font-semibold text-slate-200">(1.5)!</span>
+                        </div>
+                    </div>
+
+                    <!-- Status / Property note -->
+                    <div id="propertyNote" class="text-xs text-slate-400 bg-brand-950/30 border border-brand-800/30 p-3 rounded-xl flex items-start gap-2">
+                        <svg class="w-4 h-4 text-brand-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="propertyText">Para $x = 2.5$, se cumple $\Gamma(2.5) = 1.5 \cdot \Gamma(1.5) = \frac{3}{4}\sqrt{\pi}$.</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Chart (7 cols) -->
+            <div class="lg:col-span-7 bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 shadow-xl backdrop-blur-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-semibold text-slate-200">Gráfica de la Función $\Gamma(x)$</h2>
+                        <p class="text-xs text-slate-400">Visualización de la curva con asíntotas en enteros no positivos</p>
+                    </div>
+                    <button onclick="resetZoom()" class="text-xs px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 font-mono transition-all">
+                        Reiniciar Vista
+                    </button>
+                </div>
+
+                <!-- Canvas Container -->
+                <div class="relative w-full h-[400px] sm:h-[450px] bg-slate-900/90 rounded-xl p-2 border border-slate-700/50">
+                    <canvas id="gammaChart"></canvas>
+                </div>
+
+                <!-- Legend / Graph notes -->
+                <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 px-1 pt-1">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-0.5 bg-brand-500 inline-block"></span>
+                        <span>Curva $\Gamma(x)$</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 border border-white inline-block"></span>
+                        <span>Punto Evaluado</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-0.5 bg-rose-500 border-dashed border-t inline-block"></span>
+                        <span>Polos (Asíntotas $x = 0, -1, -2, \dots$)</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Educational / Properties Section -->
+        <section class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+            <h2 class="text-xl font-bold text-white tracking-tight border-b border-slate-700 pb-4">
+                Propiedades Fundamentales de la Función Gamma
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 space-y-3">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                        1
+                    </div>
+                    <h3 class="font-semibold text-slate-200 text-sm">Extensión del Factorial</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Para cualquier entero positivo $n$, la función satisface la identidad recursiva fundamental:
+                    </p>
+                    <div class="text-center font-mono text-sm py-2 bg-slate-950/50 rounded-lg text-indigo-300">
+                        $$\Gamma(n) = (n-1)!$$
+                    </div>
+                    <p class="text-[11px] text-slate-500">
+                        Por ejemplo, $\Gamma(1) = 0! = 1$ y $\Gamma(5) = 4! = 24$.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 space-y-3">
+                    <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-bold">
+                        2
+                    </div>
+                    <h3 class="font-semibold text-slate-200 text-sm">Fórmula de Reflexión de Euler</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Relaciona los valores de la función Gamma en números positivos con sus correspondientes negativos:
+                    </p>
+                    <div class="text-center font-mono text-sm py-2 bg-slate-950/50 rounded-lg text-brand-300">
+                        $$\Gamma(z)\Gamma(1-z) = \frac{\pi}{\sin(\pi z)}$$
+                    </div>
+                    <p class="text-[11px] text-slate-500">
+                        Permite calcular $\Gamma(1/2) = \sqrt{\pi}$ haciendo $z = 1/2$.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 space-y-3">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                        3
+                    </div>
+                    <h3 class="font-semibold text-slate-200 text-sm">Ecuación Funcional</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Propiedad recursiva equivalente a la del factorial para cualquier número complejo con parte real positiva:
+                    </p>
+                    <div class="text-center font-mono text-sm py-2 bg-slate-950/50 rounded-lg text-emerald-300">
+                        $$\Gamma(z+1) = z \cdot \Gamma(z)$$
+                    </div>
+                    <p class="text-[11px] text-slate-500">
+                        Base para la definición analítica sobre todo el plano complejo salvo $z \in \{0, -1, -2, \dots\}$.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        
+        // High-precision Gamma implementation using Lanczos approximation (g=7, n=9)
+        function gamma(z) {
+            if (isNaN(z)) return NaN;
+            
+            // Check for poles at 0 and negative integers
+            if (Number.isInteger(z) && z <= 0) {
+                return Infinity;
+            }
+            
+            // Euler's reflection formula for z < 0.5
+            if (z < 0.5) {
+                const sinPiZ = Math.sin(Math.PI * z);
+                // Avoid division by exact zero if close
+                if (Math.abs(sinPiZ) < 1e-15) return Infinity;
+                return Math.PI / (sinPiZ * gamma(1 - z));
+            }
+            
+            // Lanczos coefficients
+            const p = [
+                0.99999999999980993,
+                676.5203681218851,
+                -1259.1392167224028,
+                771.32342877765313,
+                -176.61502916214059,
+                12.507343278686905,
+                -0.13857109526572012,
+                9.9843695780195716e-6,
+                1.5056327351493116e-7
+            ];
+            
+            z -= 1;
+            let x = p[0];
+            for (let i = 1; i < p.length; i++) {
+                x += p[i] / (z + i);
+            }
+            const t = z + 7 + 0.5;
+            return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+        }
+
+        // Logarithm of Gamma function ln|Gamma(z)|
+        function lngamma(z) {
+            if (isNaN(z) || (Number.isInteger(z) && z <= 0)) return NaN;
+            
+            if (z < 0.5) {
+                const sinVal = Math.abs(Math.sin(Math.PI * z));
+                return Math.log(Math.PI) - Math.log(sinVal) - lngamma(1 - z);
+            }
+            
+            const p = [
+                0.99999999999980993,
+                676.5203681218851,
+                -1259.1392167224028,
+                771.32342877765313,
+                -176.61502916214059,
+                12.507343278686905,
+                -0.13857109526572012,
+                9.9843695780195716e-6,
+                1.5056327351493116e-7
+            ];
+            
+            z -= 1;
+            let x = p[0];
+            for (let i = 1; i < p.length; i++) {
+                x += p[i] / (z + i);
+            }
+            const t = z + 7 + 0.5;
+            return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+        }
+
+        // BigInt GCD helper for exact rational fractions
+        function gcdBigInt(a, b) {
+            while (b > 0n) {
+                let t = b;
+                b = a % b;
+                a = t;
+            }
+            return a;
+        }
+
+        // Computes exact fraction form for half-integers or integers
+        function getExactRepresentation(z) {
+            // Check integer
+            if (Number.isInteger(z)) {
+                if (z <= 0) return { latex: "\\text{Indefinido (Polo)}", desc: "Sin valor finito" };
+                if (z === 1) return { latex: "1 = 0!", desc: "0!" };
+                if (z <= 21) {
+                    let fact = 1n;
+                    for (let i = 1n; i < BigInt(z); i++) fact *= i;
+                    return { latex: `${fact.toString()} = (${z - 1})!`, desc: `(${z-1})!` };
+                }
+                return { latex: `(${z - 1})!`, desc: `(${z-1})!` };
+            }
+
+            // Check half-integer z = k/2
+            if (Number.isInteger(z * 2)) {
+                let curr = z;
+                if (curr > 0) {
+                    let num = 1n;
+                    let den = 1n;
+                    let val = curr - 1.0;
+                    while (val > 0) {
+                        let kNum = BigInt(Math.round(val * 2));
+                        num *= kNum;
+                        den *= 2n;
+                        val -= 1.0;
+                    }
+                    let g = gcdBigInt(num, den);
+                    num /= g;
+                    den /= g;
+
+                    let fracStr = "";
+                    if (den === 1n) {
+                        fracStr = num === 1n ? "" : num.toString();
+                    } else {
+                        fracStr = `\\frac{${num}}{${den}}`;
+                    }
+                    return { latex: `${fracStr}\\sqrt{\\pi}`, desc: "Múltiplo exacto de √π" };
+                } else {
+                    // Negative half integer
+                    let val = curr;
+                    let num = 1n;
+                    let den = 1n;
+                    while (val < 0) {
+                        let kNum = BigInt(Math.round(val * 2));
+                        num *= 2n;
+                        den *= kNum;
+                        val += 1.0;
+                    }
+                    if (den < 0n) {
+                        num = -num;
+                        den = -den;
+                    }
+                    let absNum = num < 0n ? -num : num;
+                    let g = gcdBigInt(absNum, den);
+                    absNum /= g;
+                    den /= g;
+                    let sign = num < 0n ? "-" : "";
+
+                    let fracStr = "";
+                    if (den === 1n) {
+                        fracStr = absNum === 1n ? "" : absNum.toString();
+                    } else {
+                        fracStr = `\\frac{${absNum}}{${den}}`;
+                    }
+                    return { latex: `${sign}${fracStr}\\sqrt{\\pi}`, desc: "Múltiplo exacto de √π" };
+                }
+            }
+            return null;
+        }
+
+        let gammaChart = null;
+
+        function buildChartData() {
+            const datasets = [];
+            
+            // We plot branches separated by asymptotes at x = 0, -1, -2, -3, -4
+            const intervals = [
+                { min: -4.49, max: -3.01 },
+                { min: -2.99, max: -2.01 },
+                { min: -1.99, max: -1.01 },
+                { min: -0.99, max: -0.01 },
+                { min: 0.01, max: 5.0 }
+            ];
+
+            intervals.forEach((interval, idx) => {
+                const dataPoints = [];
+                const step = (interval.max - interval.min) / 150;
+                
+                for (let x = interval.min; x <= interval.max; x += step) {
+                    const y = gamma(x);
+                    // Filter extreme values near asymptotes for clean display
+                    if (Math.abs(y) <= 15) {
+                        dataPoints.push({ x: parseFloat(x.toFixed(4)), y: parseFloat(y.toFixed(4)) });
+                    } else {
+                        dataPoints.push({ x: parseFloat(x.toFixed(4)), y: null });
+                    }
+                }
+
+                datasets.push({
+                    label: `Rama ${idx + 1}`,
+                    data: dataPoints,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    showLine: true,
+                    tension: 0.25
+                });
+            });
+
+            // Point dataset for selected x
+            datasets.push({
+                label: 'Punto Seleccionado',
+                data: [],
+                borderColor: '#10b981',
+                backgroundColor: '#10b981',
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                showLine: false
+            });
+
+            return datasets;
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('gammaChart').getContext('2d');
+            
+            gammaChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: buildChartData()
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 200 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` x = ${context.parsed.x},  Γ(x) = ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: -4.5,
+                            max: 5.0,
+                            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } },
+                            title: { display: true, text: 'x', color: '#cbd5e1' }
+                        },
+                        y: {
+                            min: -8,
+                            max: 10,
+                            grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } },
+                            title: { display: true, text: 'Γ(x)', color: '#cbd5e1' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function resetZoom() {
+            if (!gammaChart) return;
+            gammaChart.options.scales.x.min = -4.5;
+            gammaChart.options.scales.x.max = 5.0;
+            gammaChart.options.scales.y.min = -8;
+            gammaChart.options.scales.y.max = 10;
+            gammaChart.update();
+        }
+
+        function updateCalculator(xVal) {
+            const xInput = document.getElementById('xInput');
+            const xSlider = document.getElementById('xSlider');
+            const gammaValue = document.getElementById('gammaValue');
+            const lnGammaValue = document.getElementById('lnGammaValue');
+            const factorialRel = document.getElementById('factorialRel');
+            const exactBadge = document.getElementById('exactBadge');
+            const exactContainer = document.getElementById('exactContainer');
+            const exactMath = document.getElementById('exactMath');
+            const propertyText = document.getElementById('propertyText');
+
+            // Sanitize & set input fields
+            const x = parseFloat(xVal);
+            if (isNaN(x)) return;
+
+            if (document.activeElement !== xInput) xInput.value = x;
+            if (document.activeElement !== xSlider) xSlider.value = x;
+
+            // Compute values
+            const valGamma = gamma(x);
+            const valLnGamma = lngamma(x);
+
+            // Display main result
+            if (valGamma === Infinity || Number.isNaN(valGamma) || Math.abs(valGamma) > 1e14) {
+                if (Number.isInteger(x) && x <= 0) {
+                    gammaValue.innerText = "Indefinido (Polo ∞)";
+                    gammaValue.className = "text-2xl sm:text-3xl font-mono font-bold text-rose-400 break-all";
+                } else if (valGamma > 0) {
+                    gammaValue.innerText = "+∞ (Overflow)";
+                    gammaValue.className = "text-2xl sm:text-3xl font-mono font-bold text-amber-400 break-all";
+                } else {
+                    gammaValue.innerText = "-∞ (Overflow)";
+                    gammaValue.className = "text-2xl sm:text-3xl font-mono font-bold text-amber-400 break-all";
+                }
+            } else {
+                gammaValue.className = "text-2xl sm:text-3xl font-mono font-bold text-brand-400 break-all";
+                // Formatting for decimal precision
+                if (Math.abs(valGamma) < 1e-4 || Math.abs(valGamma) > 1e6) {
+                    gammaValue.innerText = valGamma.toExponential(8);
+                } else {
+                    gammaValue.innerText = valGamma.toLocaleString('es-ES', { maximumFractionDigits: 9 });
+                }
+            }
+
+            // Ln(Gamma)
+            if (isNaN(valLnGamma)) {
+                lnGammaValue.innerText = "No definido";
+            } else {
+                lnGammaValue.innerText = valLnGamma.toFixed(6);
+            }
+
+            // Factorial relation notation
+            const factArg = x - 1;
+            factorialRel.innerText = `(${factArg >= 0 ? factArg.toFixed(2) : factArg.toFixed(2)})!`;
+
+            // Exact form detection
+            const exactRep = getExactRepresentation(x);
+            if (exactRep) {
+                exactBadge.classList.remove('hidden');
+                exactContainer.classList.remove('hidden');
+                katex.render(`\\Gamma(${x}) = ${exactRep.latex}`, exactMath, { throwOnError: false });
+            } else {
+                exactBadge.classList.add('hidden');
+                exactContainer.classList.add('hidden');
+            }
+
+            // Property explanatory text
+            if (Number.isInteger(x) && x <= 0) {
+                propertyText.innerHTML = `En $x = ${x}$, la función Gamma posee un <strong>polo simple</strong>. La función tiende a $\\pm\\infty$.`;
+            } else if (Number.isInteger(x) && x > 0) {
+                propertyText.innerHTML = `Para $x = ${x}$, coincide exactamente con el factorial: $\\Gamma(${x}) = (${x - 1})! = ${valGamma.toLocaleString()}$.`;
+            } else if (Number.isInteger(x * 2)) {
+                propertyText.innerHTML = `Para $x = ${x}$, el valor exacto se deriva mediante la propiedad de multiplicación por $\\sqrt{\\pi}$.`;
+            } else {
+                propertyText.innerHTML = `Evaluación continua: $\\Gamma(${x}) = \\int_0^\\infty t^{${(x-1).toFixed(2)}} e^{-t} dt \\approx ${valGamma.toFixed(6)}$.`;
+            }
+            renderMathInElement(propertyText, { delimiters: [{left: "$", right: "$", display: false}] });
+
+            // Update Chart Highlight Point
+            if (gammaChart) {
+                const pointDatasetIndex = gammaChart.data.datasets.length - 1;
+                if (Math.abs(valGamma) <= 20) {
+                    gammaChart.data.datasets[pointDatasetIndex].data = [{ x: x, y: parseFloat(valGamma.toFixed(4)) }];
+                } else {
+                    gammaChart.data.datasets[pointDatasetIndex].data = [];
+                }
+                gammaChart.update('none');
+            }
+        }
+
+        function setX(val) {
+            updateCalculator(val);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            
+            // Render Math inside DOM static sections
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ]
+            });
+
+            const xInput = document.getElementById('xInput');
+            const xSlider = document.getElementById('xSlider');
+
+            xInput.addEventListener('input', (e) => updateCalculator(e.target.value));
+            xSlider.addEventListener('input', (e) => updateCalculator(e.target.value));
+
+            // Initial calculation
+            updateCalculator(2.5);
+        });
+    </script>
+</body>
+</html>
