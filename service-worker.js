@@ -3,7 +3,23 @@
    por lo que no interfiere con el resto del portal en el que esté instalado. */
 
 const VERSION = '1.1.0';
-const CACHE_NAME = `funcion-gamma-v${VERSION}`;
+
+/* Seguridad de convivencia: si este SW se registrara en la raíz del dominio
+   (p. ej. alguien copia los archivos al repo raíz del portal), se elimina a sí
+   mismo para no controlar páginas ajenas a la app. */
+const SCOPE_PATH = new URL(self.registration.scope).pathname;
+if (SCOPE_PATH === '/') {
+    self.registration.unregister();
+    self.clients.matchAll().then((clients) =>
+        clients.forEach((client) => client.navigate(client.url))
+    );
+}
+
+/* La caché incluye la ruta de la app: dos copias alojadas en el mismo origen
+   (carpetas distintas) no se pisan sus cachés entre sí. */
+const APP_PATH = SCOPE_PATH.replace(/[^/]*$/, '');
+const slug = APP_PATH.split('/').filter(Boolean).join('-') || 'root';
+const CACHE_NAME = `funcion-gamma-${slug}-v${VERSION}`;
 
 /* Solo recursos locales de la app; los CDN se dejan a la red */
 const APP_SHELL = [

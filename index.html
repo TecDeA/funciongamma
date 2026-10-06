@@ -759,31 +759,49 @@
             // Fallback si no hay service worker (p. ej. abierto como archivo local)
             const FALLBACK_VERSION = '1.1.0';
 
+            function askVersion(sw) {
+                if (sw) sw.postMessage({ type: 'GET_VERSION' });
+            }
+
             if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
                 window.addEventListener('load', () => {
-                    // Ruta relativa: el scope queda limitado a la carpeta de la app
-                    navigator.serviceWorker.register('service-worker.js')
-                        .then((reg) => {
-                            const ask = (sw) => sw && sw.postMessage({ type: 'GET_VERSION' });
+                    // Carpeta de la app dentro del origen (p. ej. "/FuncionGamma/")
+                    const appDir = location.pathname.replace(/[^/]*$/, '');
 
-                            if (reg.waiting) ask(reg.waiting);
-                            if (reg.active && navigator.serviceWorker.controller) ask(navigator.serviceWorker.controller);
+                    // No registrar si la app está en la raíz del dominio: así la
+                    // instalación nunca puede controlar el resto del portal.
+                    if (appDir === '/') {
+                        setVersion(FALLBACK_VERSION);
+                        return;
+                    }
 
-                            reg.addEventListener('updatefound', () => {
-                                reg.installing.addEventListener('statechange', (e) => {
-                                    if (e.target.state === 'installed' && navigator.serviceWorker.controller) {
-                                        ask(e.target);
-                                    }
-                                });
-                            });
-                        })
+                    // Ruta relativa: el scope queda limitado a la carpeta de la app.
+                    // updateViaCache:'none' evita que GitHub Pages sirva una versión
+                    // antigua del service-worker.js desde su caché HTTP.
+                    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
                         .catch(() => setVersion(FALLBACK_VERSION));
+
+                    // Pide la versión al SW que controla la página (o al que esté a punto de hacerlo)
+                    function requestVersion() {
+                        navigator.serviceWorker.getRegistration().then((reg) => {
+                            if (!reg) return;
+                            askVersion(navigator.serviceWorker.controller || reg.active || reg.waiting || reg.installing);
+                            if (reg.installing) {
+                                reg.installing.addEventListener('statechange', (e) => {
+                                    if (e.target.state === 'activated') askVersion(e.target);
+                                });
+                            }
+                        });
+                    }
 
                     navigator.serviceWorker.addEventListener('message', (event) => {
                         if (event.data && event.data.type === 'VERSION') {
                             setVersion(event.data.version);
                         }
                     });
+
+                    navigator.serviceWorker.addEventListener('controllerchange', requestVersion);
+                    navigator.serviceWorker.ready.then(requestVersion);
                 });
             } else {
                 setVersion(FALLBACK_VERSION);
