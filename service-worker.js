@@ -2,7 +2,7 @@
    El scope se limita a la carpeta donde se aloje este archivo,
    por lo que no interfiere con el resto del portal en el que esté instalado. */
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 /* Seguridad de convivencia: si este SW se registrara en la raíz del dominio
    (p. ej. alguien copia los archivos al repo raíz del portal), se elimina a sí
