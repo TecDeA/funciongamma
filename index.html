@@ -2,7 +2,7 @@
 <html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Calculadora y Visualizador de la Función Gamma</title>
 
     <!-- Favicon -->
@@ -14,7 +14,16 @@
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
+    <meta name="color-scheme" content="dark">
     <meta name="description" content="Calculadora analítica y visualizador interactivo de la Función Gamma de Euler">
+
+    <!-- Multiplataforma: instalación como app (Android, iOS, escritorio) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Función Gamma">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Función Gamma">
+    <meta name="msapplication-TileColor" content="#0f172a">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -56,7 +65,55 @@
     </script>
     <style>
         .katex-display { margin: 0.5em 0; }
-        #gammaChart { touch-action: pan-y; }
+
+        /* ===== Multiplataforma / móvil ===== */
+        html { color-scheme: dark; -webkit-text-size-adjust: 100%; }
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        /* Respeta las áreas seguras (notch / barra gestual en iOS y Android) */
+        .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+        .safe-bottom { padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px)); }
+        button, input, select, textarea, [role="button"] { touch-action: manipulation; }
+
+        /* Lienzo: permite el scroll vertical de la página cuando el gesto NO
+           empieza sobre el punto; el JS bloquea el gesto (preventDefault en
+           touchstart) al agarrar el punto verde, para que el arrastre no se
+           cancele nunca por el scroll. */
+        #gammaChart {
+            touch-action: pan-y;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* Slider con pulgar grande y visible (mejor manejo táctil) */
+        .gamma-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 32px;
+            background: transparent;
+            cursor: pointer;
+        }
+        .gamma-slider::-webkit-slider-runnable-track {
+            height: 6px; border-radius: 9999px; background: #334155;
+        }
+        .gamma-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            margin-top: -7px; width: 20px; height: 20px;
+            border-radius: 9999px; background: #3b82f6;
+            border: 3px solid #0f172a;
+            box-shadow: 0 0 0 1px #3b82f6, 0 2px 6px rgba(0, 0, 0, .45);
+        }
+        .gamma-slider::-moz-range-track {
+            height: 6px; border-radius: 9999px; background: #334155;
+        }
+        .gamma-slider::-moz-range-thumb {
+            width: 14px; height: 14px; border-radius: 9999px;
+            background: #3b82f6; border: 3px solid #0f172a;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+        .gamma-slider:focus-visible { outline: 2px solid #3b82f6; outline-offset: 4px; border-radius: 8px; }
+
         /* Smooth custom scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -64,21 +121,26 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-full font-sans antialiased selection:bg-brand-500 selection:text-white pb-12">
+<body class="bg-slate-900 text-slate-100 min-h-full font-sans antialiased selection:bg-brand-500 selection:text-white safe-bottom">
+    <noscript>
+        <div style="background:#7f1d1d;color:#fff;padding:12px 16px;text-align:center;font-size:14px;">
+            Esta aplicación necesita JavaScript para funcionar. Actívalo en tu navegador.
+        </div>
+    </noscript>
 
     <!-- Header -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <header class="pt-safe border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-xl">
                     Γ
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold text-white tracking-tight">Función Gamma de Euler</h1>
-                        <span id="appVersion" class="inline-flex items-center px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-[10px] font-mono font-semibold text-brand-300" title="Versión de la aplicación">v—</span>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h1 class="text-base sm:text-lg font-bold text-white tracking-tight truncate">Función Gamma de Euler</h1>
+                        <span id="appVersion" class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-[10px] font-mono font-semibold text-brand-300" title="Versión de la aplicación">v—</span>
                     </div>
-                    <p class="text-xs text-slate-400">Calculadora Analítica y Visualizador Interactivo</p>
+                    <p class="text-[11px] sm:text-xs text-slate-400 truncate">Calculadora Analítica y Visualizador Interactivo</p>
                 </div>
             </div>
             <div class="hidden sm:flex items-center space-x-4 text-xs text-slate-400">
@@ -98,7 +160,7 @@
             <div class="lg:col-span-5 space-y-6">
                 
                 <!-- Input Card -->
-                <div class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 shadow-xl backdrop-blur-sm space-y-6">
+                <div class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-4 sm:p-6 shadow-xl backdrop-blur-sm space-y-6">
                     <div class="flex items-center justify-between">
                         <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
                             <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +182,7 @@
                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">
                                     x =
                                 </span>
-                                <input type="number" id="xInput" step="any" value="2.5" 
+                                <input type="number" id="xInput" step="any" inputmode="decimal" enterkeyhint="done" value="2.5" 
                                     class="w-full bg-slate-900 border border-slate-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl pl-10 pr-4 py-2.5 text-white font-mono font-medium text-lg outline-none transition-all">
                             </div>
                         </div>
@@ -128,13 +190,13 @@
                         <!-- Slider -->
                         <div class="space-y-1 pt-2">
                             <input type="range" id="xSlider" min="-4.5" max="5.0" step="0.05" value="2.5" 
-                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500">
-                            <div class="flex justify-between text-[10px] text-slate-500 font-mono">
-                                <span>-4.5</span>
-                                <span>-2.0</span>
-                                <span>0.0</span>
-                                <span>2.5</span>
-                                <span>5.0</span>
+                                class="gamma-slider" aria-label="Valor de x">
+                            <div class="relative h-3 text-[10px] text-slate-500 font-mono select-none">
+                                <span class="absolute left-0 top-0">-4.5</span>
+                                <span class="absolute top-0" style="left: 26.3%; transform: translateX(-50%);">-2.0</span>
+                                <span class="absolute top-0" style="left: 47.4%; transform: translateX(-50%);">0.0</span>
+                                <span class="absolute top-0" style="left: 73.7%; transform: translateX(-50%);">2.5</span>
+                                <span class="absolute right-0 top-0">5.0</span>
                             </div>
                         </div>
                     </div>
@@ -142,29 +204,29 @@
                     <!-- Presets -->
                     <div class="space-y-2">
                         <span class="text-xs font-medium text-slate-400">Valores notables de interés:</span>
-                        <div class="grid grid-cols-4 gap-2">
-                            <button onclick="setX(0.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="setX(0.5)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 1/2 <span class="text-[10px] text-brand-400 block">(√π)</span>
                             </button>
-                            <button onclick="setX(1)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                            <button onclick="setX(1)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 1 <span class="text-[10px] text-brand-400 block">(0!)</span>
                             </button>
-                            <button onclick="setX(2.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                            <button onclick="setX(2.5)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 5/2 <span class="text-[10px] text-brand-400 block">(¾√π)</span>
                             </button>
-                            <button onclick="setX(5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                            <button onclick="setX(5)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 5 <span class="text-[10px] text-brand-400 block">(4! = 24)</span>
                             </button>
-                            <button onclick="setX(-0.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                            <button onclick="setX(-0.5)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 -1/2 <span class="text-[10px] text-brand-400 block">(-2√π)</span>
                             </button>
-                            <button onclick="setX(-1.5)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                            <button onclick="setX(-1.5)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 -3/2 <span class="text-[10px] text-brand-400 block">(⁴/₃√π)</span>
                             </button>
-                            <button onclick="setX(0)" class="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 rounded-lg text-xs font-mono text-rose-300 transition-all text-center">
+                            <button onclick="setX(0)" class="px-2.5 py-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 rounded-lg text-xs font-mono text-rose-300 transition-all text-center">
                                 0 <span class="text-[10px] text-rose-400 block">(Polo)</span>
                             </button>
-                            <button onclick="setX(10)" class="px-2.5 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
+                            <button onclick="setX(10)" class="px-2.5 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-xs font-mono text-slate-300 transition-all text-center">
                                 10 <span class="text-[10px] text-brand-400 block">(9!)</span>
                             </button>
                         </div>
@@ -172,7 +234,7 @@
                 </div>
 
                 <!-- Result Display Card -->
-                <div class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 shadow-xl space-y-5">
+                <div class="bg-slate-800/90 border border-slate-700/60 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
                     <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resultado Analítico</span>
                         <span id="exactBadge" class="hidden text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -218,7 +280,7 @@
             </div>
 
             <!-- Right Column: Chart (7 cols) -->
-            <div class="lg:col-span-7 bg-slate-800/90 border border-slate-700/60 rounded-2xl p-6 shadow-xl backdrop-blur-sm space-y-4">
+            <div class="lg:col-span-7 bg-slate-800/90 border border-slate-700/60 rounded-2xl p-4 sm:p-6 shadow-xl backdrop-blur-sm space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-base font-semibold text-slate-200">Gráfica de la Función $\Gamma(x)$</h2>
@@ -230,9 +292,17 @@
                 </div>
 
                 <!-- Canvas Container -->
-                <div class="relative w-full h-[400px] sm:h-[450px] bg-slate-900/90 rounded-xl p-2 border border-slate-700/50">
+                <div class="relative w-full h-[320px] sm:h-[430px] lg:h-[460px] bg-slate-900/90 rounded-xl p-2 border border-slate-700/50">
                     <canvas id="gammaChart"></canvas>
                 </div>
+
+                <!-- Ayuda de interacción -->
+                <p class="text-[11px] text-slate-500 px-1 leading-snug">
+                    <span class="text-emerald-400 font-medium">Arrastra el punto verde</span> para explorar la curva, o toca / haz clic en cualquier lugar de la gráfica para situarlo ahí.
+                </p>
+                <p id="pointRangeNote" class="hidden text-[11px] text-amber-400/90 px-1 leading-snug">
+                    Γ(x) queda fuera del rango vertical visible: el punto se dibuja ajustado al borde superior o inferior (estilo hueco) y el tooltip muestra el valor real.
+                </p>
 
                 <!-- Legend / Graph notes -->
                 <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 px-1 pt-1">
@@ -511,10 +581,12 @@
             datasets.push({
                 label: 'Punto Seleccionado',
                 data: [],
-                borderColor: '#10b981',
+                borderColor: '#e2e8f0',
                 backgroundColor: '#10b981',
                 pointRadius: 6,
                 pointHoverRadius: 8,
+                pointHitRadius: 14,
+                borderWidth: 2,
                 showLine: false
             });
 
@@ -532,13 +604,21 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 200 },
+                    resizeDelay: 100,
+                    animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 200 },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return ` x = ${context.parsed.x},  Γ(x) = ${context.parsed.y}`;
+                                    const raw = context.raw || {};
+                                    let yText;
+                                    if (raw.yReal === Infinity) yText = '+∞';
+                                    else if (raw.yReal === -Infinity) yText = '-∞';
+                                    else if (raw.yReal !== undefined && raw.yReal !== null) yText = raw.yReal;
+                                    else yText = context.parsed.y;
+                                    return ` x = ${context.parsed.x},  Γ(x) = ${yText}`;
                                 }
                             }
                         }
@@ -549,18 +629,31 @@
                             min: -4.5,
                             max: 5.0,
                             grid: { color: 'rgba(51, 65, 85, 0.4)' },
-                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } },
+                            ticks: { color: '#94a3b8', maxTicksLimit: window.innerWidth < 640 ? 7 : 12, font: { family: 'JetBrains Mono', size: window.innerWidth < 640 ? 10 : 12 } },
                             title: { display: true, text: 'x', color: '#cbd5e1' }
                         },
                         y: {
                             min: -8,
                             max: 10,
                             grid: { color: 'rgba(51, 65, 85, 0.4)' },
-                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } },
+                            ticks: { color: '#94a3b8', maxTicksLimit: window.innerWidth < 640 ? 7 : 10, font: { family: 'JetBrains Mono', size: window.innerWidth < 640 ? 10 : 12 } },
                             title: { display: true, text: 'Γ(x)', color: '#cbd5e1' }
                         }
                     }
                 }
+            });
+
+            // Ajusta el tamaño de letra de los ejes al cambiar orientación / tamaño
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (!gammaChart) return;
+                    const small = window.innerWidth < 640;
+                    gammaChart.options.scales.x.ticks.font.size = small ? 10 : 12;
+                    gammaChart.options.scales.y.ticks.font.size = small ? 10 : 12;
+                    gammaChart.update('none');
+                }, 150);
             });
         }
 
@@ -573,20 +666,33 @@
             gammaChart.update();
         }
 
-        function updateCalculator(xVal) {
+        let lastX = 2.5;
+        let heavyTimer = null;
+        let lightRaf = null;
+        let pendingLightX = null;
+
+        // Actualización ligera coalescida a frames: mantiene el arrastre a 60 fps
+        function queueLightUpdate(xVal) {
+            pendingLightX = xVal;
+            if (lightRaf !== null) return;
+            lightRaf = requestAnimationFrame(() => {
+                lightRaf = null;
+                updateCalculator(pendingLightX, { heavy: false });
+            });
+        }
+
+        function updateCalculator(xVal, opts) {
+            const heavy = !opts || opts.heavy !== false;
             const xInput = document.getElementById('xInput');
             const xSlider = document.getElementById('xSlider');
             const gammaValue = document.getElementById('gammaValue');
             const lnGammaValue = document.getElementById('lnGammaValue');
             const factorialRel = document.getElementById('factorialRel');
-            const exactBadge = document.getElementById('exactBadge');
-            const exactContainer = document.getElementById('exactContainer');
-            const exactMath = document.getElementById('exactMath');
-            const propertyText = document.getElementById('propertyText');
 
             // Sanitize & set input fields
             const x = parseFloat(xVal);
             if (isNaN(x)) return;
+            lastX = x;
 
             if (document.activeElement !== xInput) xInput.value = x;
             if (document.activeElement !== xSlider) xSlider.value = x;
@@ -626,7 +732,58 @@
 
             // Factorial relation notation
             const factArg = x - 1;
-            factorialRel.innerText = `(${factArg >= 0 ? factArg.toFixed(2) : factArg.toFixed(2)})!`;
+            factorialRel.innerText = `(${factArg.toFixed(2)})!`;
+
+            // El render de LaTeX y la forma exacta son costosos: se ejecutan al
+            // terminar el gesto (o con debounce), nunca en cada frame del arrastre.
+            clearTimeout(heavyTimer);
+            if (heavy) {
+                renderAnalyticalExtras(x, valGamma);
+            } else {
+                heavyTimer = setTimeout(() => renderAnalyticalExtras(lastX, gamma(lastX)), 140);
+            }
+
+            // Update Chart Highlight Point — SIEMPRE visible.
+            // Si Γ(x) se sale del rango visible, el punto se ajusta al borde
+            // (estilo hueco) y el tooltip muestra el valor real.
+            if (gammaChart) {
+                const pointDatasetIndex = gammaChart.data.datasets.length - 1;
+                const xScale = gammaChart.scales.x;
+                const yScale = gammaChart.scales.y;
+                const xMin = (typeof xScale.min === 'number') ? xScale.min : -4.5;
+                const xMax = (typeof xScale.max === 'number') ? xScale.max : 5.0;
+                const yMin = (typeof yScale.min === 'number') ? yScale.min : -8;
+                const yMax = (typeof yScale.max === 'number') ? yScale.max : 10;
+
+                const xPad = (xMax - xMin) * 0.01;
+                const yPad = (yMax - yMin) * 0.03;
+                const loY = yMin + yPad, hiY = yMax - yPad;
+                const displayX = Math.min(Math.max(x, xMin + xPad), xMax - xPad);
+                const displayY = Math.min(Math.max(valGamma, loY), hiY);
+                const clamped = !Number.isFinite(valGamma) || valGamma < loY || valGamma > hiY;
+
+                const pointDs = gammaChart.data.datasets[pointDatasetIndex];
+                pointDs.data = [{ x: parseFloat(displayX.toFixed(4)), y: parseFloat(displayY.toFixed(4)), yReal: valGamma }];
+                pointDs.pointStyle = clamped ? 'rectRot' : 'circle';
+                pointDs.pointRadius = clamped ? 8 : 6;
+                pointDs.pointHoverRadius = clamped ? 10 : 8;
+                pointDs.borderWidth = 2;
+                pointDs.borderColor = clamped ? '#10b981' : '#e2e8f0';
+                pointDs.backgroundColor = clamped ? 'rgba(16, 185, 129, 0.30)' : '#10b981';
+
+                const rangeNote = document.getElementById('pointRangeNote');
+                if (rangeNote) rangeNote.classList.toggle('hidden', !clamped);
+
+                gammaChart.update('none');
+            }
+        }
+
+        // Forma exacta + nota de propiedades (render LaTeX, parte costosa)
+        function renderAnalyticalExtras(x, valGamma) {
+            const exactBadge = document.getElementById('exactBadge');
+            const exactContainer = document.getElementById('exactContainer');
+            const exactMath = document.getElementById('exactMath');
+            const propertyText = document.getElementById('propertyText');
 
             // Exact form detection
             const exactRep = getExactRepresentation(x);
@@ -647,80 +804,170 @@
             } else if (Number.isInteger(x * 2)) {
                 propertyText.innerHTML = `Para $x = ${x}$, el valor exacto se deriva mediante la propiedad de multiplicación por $\\sqrt{\\pi}$.`;
             } else {
-                propertyText.innerHTML = `Evaluación continua: $\\Gamma(${x}) = \\int_0^\\infty t^{${(x-1).toFixed(2)}} e^{-t} dt \\approx ${valGamma.toFixed(6)}$.`;
+                const valTxt = Number.isFinite(valGamma) ? valGamma.toFixed(6) : '\\pm\\infty';
+                propertyText.innerHTML = `Evaluación continua: $\\Gamma(${x}) = \\int_0^\\infty t^{${(x-1).toFixed(2)}} e^{-t} dt \\approx ${valTxt}$.`;
             }
             renderMathInElement(propertyText, { delimiters: [{left: "$", right: "$", display: false}] });
-
-            // Update Chart Highlight Point
-            if (gammaChart) {
-                const pointDatasetIndex = gammaChart.data.datasets.length - 1;
-                if (Math.abs(valGamma) <= 20) {
-                    gammaChart.data.datasets[pointDatasetIndex].data = [{ x: x, y: parseFloat(valGamma.toFixed(4)) }];
-                } else {
-                    gammaChart.data.datasets[pointDatasetIndex].data = [];
-                }
-                gammaChart.update('none');
-            }
         }
 
         function setX(val) {
             updateCalculator(val);
         }
 
-        // Arrastre del punto evaluado sobre la gráfica
+        // ===== Interacción con la gráfica (ratón, táctil y lápiz) =====
+        // 1. Arrastra el punto verde: tolerancia generosa en táctil y el gesto se
+        //    bloquea (preventDefault en touchstart) para que el scroll de la página
+        //    nunca cancele el arrastre.
+        // 2. Barrido (scrub) horizontal desde cualquier zona del lienzo.
+        // 3. Toque / clic corto: sitúa el punto en esa x.
         function initPointDragging() {
             const canvas = document.getElementById('gammaChart');
-            const DRAG_RADIUS_PX = 20;   // tolerancia para agarrar el punto
+            if (!canvas) return;
             const X_MIN = -4.5, X_MAX = 5.0;
+            const TAP_MS = 450, TAP_DIST = 12, SCRUB_THRESHOLD = 10;
+
+            let activePointerId = null;
             let dragging = false;
+            let downInfo = null; // { x, y, t, near, dirDecided, horizontal }
 
             function pointPixel() {
-                const ds = gammaChart.data.datasets[gammaChart.data.datasets.length - 1];
-                if (!ds.data.length) return null;
-                const meta = gammaChart.getDatasetMeta(gammaChart.data.datasets.length - 1);
+                if (!gammaChart) return null;
+                const dsIndex = gammaChart.data.datasets.length - 1;
+                const ds = gammaChart.data.datasets[dsIndex];
+                if (!ds || !ds.data.length) return null;
+                const meta = gammaChart.getDatasetMeta(dsIndex);
                 if (!meta.data[0]) return null;
                 return { x: meta.data[0].x, y: meta.data[0].y };
             }
 
-            function xFromEvent(e) {
-                const rect = canvas.getBoundingClientRect();
-                const raw = gammaChart.scales.x.getValueForPixel(e.clientX - rect.left);
-                return Math.min(X_MAX, Math.max(X_MIN, raw));
+            function toleranceFor(pointerType) {
+                // El dedo es impreciso: tolerancia mayor en pantallas táctiles
+                return pointerType === 'touch' ? 36 : 18;
             }
 
-            function nearPoint(e) {
+            function nearPoint(clientX, clientY, pointerType) {
                 const p = pointPixel();
                 if (!p) return false;
                 const rect = canvas.getBoundingClientRect();
-                const dx = e.clientX - rect.left - p.x;
-                const dy = e.clientY - rect.top - p.y;
-                return Math.hypot(dx, dy) <= DRAG_RADIUS_PX;
+                const dx = clientX - rect.left - p.x;
+                const dy = clientY - rect.top - p.y;
+                return Math.hypot(dx, dy) <= toleranceFor(pointerType);
             }
 
-            canvas.addEventListener('pointerdown', (e) => {
-                if (!nearPoint(e)) return;
-                dragging = true;
-                canvas.setPointerCapture(e.pointerId);
-                canvas.style.cursor = 'grabbing';
-                updateCalculator(parseFloat(xFromEvent(e).toFixed(3)));
-            });
+            function xFromClient(clientX) {
+                const rect = canvas.getBoundingClientRect();
+                const raw = gammaChart.scales.x.getValueForPixel(clientX - rect.left);
+                return Math.min(X_MAX, Math.max(X_MIN, raw));
+            }
 
-            canvas.addEventListener('pointermove', (e) => {
-                if (dragging) {
-                    updateCalculator(parseFloat(xFromEvent(e).toFixed(3)));
-                } else {
-                    canvas.style.cursor = nearPoint(e) ? 'grab' : 'default';
+            const round3 = (v) => Math.round(v * 1000) / 1000;
+
+            function beginDrag(e) {
+                dragging = true;
+                const xInput = document.getElementById('xInput');
+                if (xInput && document.activeElement === xInput) xInput.blur(); // cierra el teclado móvil
+                gammaChart.options.plugins.tooltip.enabled = false;
+                gammaChart.update('none');
+                try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+                canvas.style.cursor = 'grabbing';
+            }
+
+            function endDragState(e) {
+                dragging = false;
+                gammaChart.options.plugins.tooltip.enabled = true;
+                canvas.style.cursor = 'grab';
+                if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) {
+                    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+                }
+            }
+
+            // Bloquea el scroll del navegador cuando el gesto táctil empieza sobre el punto
+            canvas.addEventListener('touchstart', (e) => {
+                if (!gammaChart || e.touches.length !== 1) return;
+                const t = e.touches[0];
+                if (nearPoint(t.clientX, t.clientY, 'touch')) e.preventDefault();
+            }, { passive: false });
+
+            canvas.addEventListener('pointerdown', (e) => {
+                if (!gammaChart || activePointerId !== null) return; // ya hay un gesto en curso
+                activePointerId = e.pointerId;
+                downInfo = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    t: Date.now(),
+                    near: nearPoint(e.clientX, e.clientY, e.pointerType),
+                    dirDecided: false,
+                    horizontal: false
+                };
+                try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+                if (downInfo.near) {
+                    beginDrag(e);
+                    updateCalculator(round3(xFromClient(e.clientX)), { heavy: false });
                 }
             });
 
-            const endDrag = (e) => {
-                if (!dragging) return;
-                dragging = false;
-                canvas.style.cursor = 'grab';
-                if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-            };
-            canvas.addEventListener('pointerup', endDrag);
-            canvas.addEventListener('pointercancel', endDrag);
+            canvas.addEventListener('pointermove', (e) => {
+                if (!gammaChart || e.pointerId !== activePointerId || !downInfo) return;
+
+                if (dragging) {
+                    queueLightUpdate(round3(xFromClient(e.clientX)));
+                    return;
+                }
+
+                // Ratón sin arrastrar: feedback de cursor
+                if (e.pointerType === 'mouse' && activePointerId === null) {
+                    canvas.style.cursor = nearPoint(e.clientX, e.clientY, 'mouse') ? 'grab' : 'crosshair';
+                    return;
+                }
+
+                // Decide la intención del gesto: scrub horizontal o scroll vertical
+                if (!downInfo.dirDecided) {
+                    const dx = e.clientX - downInfo.x;
+                    const dy = e.clientY - downInfo.y;
+                    if (Math.hypot(dx, dy) < SCRUB_THRESHOLD) return;
+                    downInfo.dirDecided = true;
+                    downInfo.horizontal = Math.abs(dx) > Math.abs(dy);
+                    if (downInfo.horizontal) beginDrag(e);
+                }
+                if (dragging) {
+                    queueLightUpdate(round3(xFromClient(e.clientX)));
+                }
+            });
+
+            function endGesture(e) {
+                const wasDragging = dragging;
+                if (wasDragging) endDragState(e);
+
+                // Toque / clic corto (sin arrastre): sitúa el punto ahí
+                if (!wasDragging && downInfo && e.pointerId === activePointerId && e.type === 'pointerup') {
+                    const dist = Math.hypot(e.clientX - downInfo.x, e.clientY - downInfo.y);
+                    const dt = Date.now() - downInfo.t;
+                    if (!downInfo.near && dist < TAP_DIST && dt < TAP_MS) {
+                        updateCalculator(round3(xFromClient(e.clientX)));
+                    }
+                }
+
+                // Refresco final (LaTeX / forma exacta) al soltar el punto
+                if (wasDragging) updateCalculator(lastX);
+
+                if (e.pointerId === activePointerId) {
+                    activePointerId = null;
+                    downInfo = null;
+                }
+            }
+
+            canvas.addEventListener('pointerup', endGesture);
+            canvas.addEventListener('pointercancel', (e) => {
+                if (dragging) endDragState(e);
+                if (e.pointerId === activePointerId) {
+                    activePointerId = null;
+                    downInfo = null;
+                }
+            });
+
+            canvas.addEventListener('pointerleave', () => {
+                if (activePointerId === null && !dragging) canvas.style.cursor = 'default';
+            });
         }
 
 
@@ -739,8 +986,8 @@
             const xInput = document.getElementById('xInput');
             const xSlider = document.getElementById('xSlider');
 
-            xInput.addEventListener('input', (e) => updateCalculator(e.target.value));
-            xSlider.addEventListener('input', (e) => updateCalculator(e.target.value));
+            xInput.addEventListener('input', (e) => updateCalculator(e.target.value, { heavy: false }));
+            xSlider.addEventListener('input', (e) => updateCalculator(e.target.value, { heavy: false }));
 
             // Initial calculation
             updateCalculator(2.5);
@@ -757,7 +1004,7 @@
             }
 
             // Fallback si no hay service worker (p. ej. abierto como archivo local)
-            const FALLBACK_VERSION = '1.1.0';
+            const FALLBACK_VERSION = '1.2.0';
 
             function askVersion(sw) {
                 if (sw) sw.postMessage({ type: 'GET_VERSION' });
